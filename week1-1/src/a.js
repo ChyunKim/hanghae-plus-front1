@@ -45,9 +45,7 @@ Worker.prototype.work = function () {
 JuniorEngineer.prototype = Object.create(Worker.prototype);
 JuniorEngineer.prototype.constructor = JuniorEngineer;
 
-JuniorEngineer.prototype._super = function (health) {
-  Worker.call(this, health);
-};
+JuniorEngineer.prototype._super = Worker;
 
 JuniorEngineer.prototype.getIntelligence = function () {
   return this._intelligence;
