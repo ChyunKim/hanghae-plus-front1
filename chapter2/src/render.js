@@ -1,17 +1,31 @@
 // virtual Dom을 구성
-// React.createElement 라는 React 내부의 자체 메서드를 통해서 js 객체로 변환됨
 export function jsx(type, props, ...children) {
   return {
     type,
-    props,
+    props: { ...props },
     children: [...children],
   };
 }
 // Babel은 JSX를 React.createElement() 호출로 컴파일
 // react를 임포트 해야하는 이유도 이와 같음
-
 export function createElement(node) {
+  if (typeof node === 'string') {
+    return document.createTextNode(node);
+  }
+
   const element = document.createElement(node.type);
+
+  for (let key in node.props) {
+    if (key.startsWith('on') && typeof node.props[key] === 'function') {
+      const eventType = key.substring(2).toLowerCase();
+      element.addEventListener(eventType, node.props[key]);
+    } else element.setAttribute(key, node.props[key]);
+  }
+
+  for (let child of node.children) {
+    const childElement = createElement(child);
+    element.appendChild(childElement);
+  }
 
   return element;
 }
@@ -27,23 +41,41 @@ function updateAttributes(target, newProps, oldProps) {
   //     다음 속성으로 넘어감 (속성 유지 필요)
   //   만약 newProps들에 해당 속성이 존재하지 않는다면
   //     target에서 해당 속성을 제거
+
+  for (let key in newProps) {
+    if (newProps[key] !== oldProps[key]) {
+      target.setAttribute(key, newProps[key]);
+    }
+  }
+
+  for (let key in oldProps) {
+    if (!(key in newProps)) {
+      target.removeAttribute(key);
+    }
+  }
 }
 
+/**
+  Reconciliation(재조정)이란, 앞으로 그려질 DOM과 그려지기 전 DOM의 부분을 비교해 달라진 부분을 찾아내 계산하는 과정 
+  Diff 알고리즘은 아래와 같은 작업을 함.
+  React Element의 타입(JSX 태그 종류) 비교
+  타입이 동일할 경우 속성(attribute) 비교
+  key 값 비교 재귀적으로 자식 Element 비교
+ */
 export function render(parent, newNode, oldNode, index = 0) {
-  // 1. 만약 newNode가 없고 oldNode만 있다면
-  //   parent에서 oldNode를 제거
-  //   종료
-  // 2. 만약 newNode가 있고 oldNode가 없다면
-  //   newNode를 생성하여 parent에 추가
-  //   종료
-  // 3. 만약 newNode와 oldNode 둘 다 문자열이고 서로 다르다면
-  //   oldNode를 newNode로 교체
-  //   종료
-  // 4. 만약 newNode와 oldNode의 타입이 다르다면
-  //   oldNode를 newNode로 교체
-  //   종료
-  // 5. newNode와 oldNode에 대해 updateAttributes 실행
-  // 6. newNode와 oldNode 자식노드들 중 더 긴 길이를 가진 것을 기준으로 반복
-  //   각 자식노드에 대해 재귀적으로 render 함수 호출
-  parent.appendChild(createElement(newNode));
+  if (!newNode && oldNode) parent.removeChild(parent.childNodes[index]);
+  else if (newNode && !oldNode) parent.appendChild(createElement(newNode));
+  else if (
+    typeof newNode !== typeof oldNode ||
+    (typeof newNode === 'string' && newNode !== oldNode)
+  ) {
+    parent.replaceChild(createElement(newNode), parent.childNodes[index]);
+  } else if (newNode.props) {
+    updateAttributes(parent.childNodes[index], newNode.props, oldNode.props);
+
+    const maxLength = Math.max(newNode.children.length, oldNode.children.length);
+    for (let i = 0; i < maxLength; i++) {
+      render(parent.childNodes[index], newNode.children[i], oldNode.children[i], i);
+    }
+  }
 }
