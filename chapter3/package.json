@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "name": "chapter3",
+  "description": "Chapter 3 source code",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "test:d": "vitest src/__tests__/hooks.test.js",
+    "test:e": "vitest src/__tests__/1.pubsub.test.js",
+    "test:f": "vitest src/__tests__/2.store.test.js"
+  },
+  "devDependencies": {
+    "vitest": "^1.4.0",
+    "jsdom": "^24.0.0"
+  }
+}
